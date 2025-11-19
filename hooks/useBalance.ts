@@ -2,9 +2,13 @@
 import { useEffect, useState } from "react";
 import { useDB } from "./useDB";
 import { calculateBalance } from "@/lib/balance";
+import { processScheduledPayments } from "@/lib/scheduledPayments";
 import { CURRENT_COMPANY_ID } from "@/lib/mocks";
 
-export function useBalance(companyId: string = CURRENT_COMPANY_ID) {
+export function useBalance(
+  companyId: string = CURRENT_COMPANY_ID,
+  processScheduled: boolean = true
+) {
   const { db } = useDB();
   const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -14,6 +18,11 @@ export function useBalance(companyId: string = CURRENT_COMPANY_ID) {
 
     (async () => {
       try {
+        // Process scheduled payments that are due before calculating balance
+        if (processScheduled) {
+          await processScheduledPayments(db);
+        }
+
         const wallet = await db.get("wallets", companyId);
 
         // Fetch both outgoing and incoming transactions
@@ -39,7 +48,7 @@ export function useBalance(companyId: string = CURRENT_COMPANY_ID) {
         setLoading(false);
       }
     })();
-  }, [db, companyId]);
+  }, [db, companyId, processScheduled]);
 
   return { balance, loading };
 }

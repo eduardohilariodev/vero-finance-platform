@@ -126,7 +126,7 @@ describe("useDB and useBalance hooks integration", () => {
     // Create transactions:
     // - Deposit: +$5,000 (from external, to company-1)
     // - Payment sent: -$1,500 (from company-1, to company-2)
-    // Expected balance: $10,000 + $5,000 - $1,500 = $13,500
+    // - Expected balance: $10,000 + $5,000 - $1,500 = $13,500
     const transactions: Transaction[] = [
       {
         id: "tx-1",
@@ -318,6 +318,61 @@ describe("useDB and useBalance hooks integration", () => {
     await waitFor(() => {
       const balanceElement = screen.getByTestId("balance");
       expect(balanceElement.textContent).toBe("$5,000");
+    });
+  });
+
+  it("should process scheduled payments before calculating balance", async () => {
+    // Setup: Create wallet with initial balance
+    const wallet: Wallet = {
+      companyId: CURRENT_COMPANY_ID,
+      balance: 10_000,
+      currency: "USDC",
+      lastUpdated: new Date(),
+    };
+
+    const now = new Date();
+    const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+
+    // Create a scheduled payment that is due (should be processed)
+    // Note: status MUST be "pending" for the processor to pick it up.
+    // "scheduled" is not a valid TransactionStatus type.
+    const scheduledTx: Transaction = {
+      id: "tx-scheduled",
+      type: "payment_sent",
+      amount: 1_000,
+      currency: "USDC",
+      fromCompanyId: CURRENT_COMPANY_ID,
+      toCompanyId: "company-2",
+      status: "pending",
+      scheduledFor: pastDate,
+      createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    };
+
+    await db.put("wallets", wallet);
+    await db.put("transactions", scheduledTx);
+
+    // Render component - this should trigger scheduled payment processing via useBalance hook
+    render(<TestBalanceComponent />);
+
+    // Wait for balance to load
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("balance-loading")).not.toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
+
+    // Verify scheduled payment was processed (status changed to completed)
+    // We wrap this in waitFor to handle any slight async delay in the DB update persisting
+    await waitFor(async () => {
+      const processedTx = await db.get("transactions", "tx-scheduled");
+      expect(processedTx?.status).toBe("completed");
+    });
+
+    // Verify balance reflects the processed payment: $10,000 - $1,000 = $9,000
+    await waitFor(() => {
+      const balanceElement = screen.getByTestId("balance");
+      expect(balanceElement.textContent).toBe("$9,000");
     });
   });
 });
