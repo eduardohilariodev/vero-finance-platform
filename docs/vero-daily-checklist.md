@@ -80,24 +80,24 @@ Use this to track real-time progress. Check items off as you complete them.
 
 **useDB Hook (`src/hooks/useDB.ts`):**
 
-- [ ] Hook initializes database on mount
-- [ ] Returns `{ db, loading, error }` tuple
-- [ ] Handles cleanup to prevent memory leaks
-- [ ] No errors in browser console when used
+- [x] Hook initializes database on mount ✓
+- [x] Returns `{ db, loading, error }` tuple ✓
+- [x] Handles cleanup to prevent memory leaks ✓
+- [x] No errors in browser console when used ✓
 
 **useBalance Hook (`src/hooks/useBalance.ts`):**
 
-- [ ] Hook fetches wallet and transactions
-- [ ] Calculates balance using `calculateBalance()`
-- [ ] Returns `{ balance, loading }`
-- [ ] Updates when dependencies change
-- [ ] Works with mock data
+- [x] Hook fetches wallet and transactions ✓
+- [x] Calculates balance using `calculateBalance()` ✓
+- [x] Returns `{ balance, loading }` ✓
+- [x] Updates when dependencies change ✓
+- [x] Works with mock data ✓ (fixed to fetch both incoming and outgoing transactions)
 
 **Test All Hooks Together:**
 
-- [ ] Create test component that uses both hooks
-- [ ] Verify data loads correctly
-- [ ] Verify balance displays correct value
+- [x] Create test component that uses both hooks ✓
+- [x] Verify data loads correctly ✓
+- [x] Verify balance displays correct value ✓
 
 ---
 
