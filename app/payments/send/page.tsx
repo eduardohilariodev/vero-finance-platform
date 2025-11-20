@@ -6,7 +6,15 @@ import { useDB } from "@/hooks/useDB";
 import { useBalance } from "@/hooks/useBalance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, User, ChevronDown, Plus, X, Wallet } from "lucide-react";
+import {
+  Calendar,
+  User,
+  ChevronDown,
+  Plus,
+  X,
+  Wallet,
+  AlertCircle,
+} from "lucide-react";
 import { v4 as uuid } from "uuid";
 import { CURRENT_COMPANY_ID } from "@/lib/mocks";
 import { Company } from "@/lib/types";
@@ -31,16 +39,21 @@ export default function SendPaymentPage() {
 
   // Main Form State
   const [formData, setFormData] = useState({
-    amount: "",
+    amount: "", // Raw numeric string for logic
+    displayAmount: "", // Formatted string with commas for UI
     email: "",
     description: "",
-    dueDate: "",
+    dueDate: "", // Format: YYYY-MM-DD
     currency: "USD",
   });
 
   // Exchange Rate State
   const [currentRate, setCurrentRate] = useState(1);
   const [estimatedCost, setEstimatedCost] = useState(0);
+
+  // Validation State
+  const [insufficientBalance, setInsufficientBalance] = useState(false);
+  const [isScheduled, setIsScheduled] = useState(false);
 
   // Create Company Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -52,6 +65,17 @@ export default function SendPaymentPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Helper: Get today's date string in local time YYYY-MM-DD
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayString = getTodayString();
 
   // Fetch available companies
   const fetchCompanies = async () => {
@@ -86,11 +110,27 @@ export default function SendPaymentPage() {
       c.email.toLowerCase().includes(formData.email.toLowerCase())
   );
 
+  // Formatting Logic for Amount
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, "");
+
+    // Allow only numbers and one decimal point
+    if (!/^\d*\.?\d*$/.test(rawValue)) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      amount: rawValue,
+      displayAmount:
+        rawValue === "" ? "" : Number(rawValue).toLocaleString("en-US"),
+    }));
+  };
+
   // Step 1: Validate, Fetch Rate, and move to Review
   const handleReview = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true); // Show loading while fetching rate
+    setInsufficientBalance(false);
+    setLoading(true);
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
@@ -117,18 +157,13 @@ export default function SendPaymentPage() {
       const costInUsd = amount * rate;
       setEstimatedCost(costInUsd);
 
-      // Check balance for immediate payments
-      const dueDate = new Date(formData.dueDate);
-      const isToday = new Date().toDateString() === dueDate.toDateString();
+      // Check Date
+      const isToday = formData.dueDate === todayString;
+      setIsScheduled(!isToday);
 
-      if (isToday && costInUsd > balance) {
-        setError(
-          `Insufficient balance. Cost: $${costInUsd.toFixed(
-            2
-          )} vs Balance: $${balance.toFixed(2)}`
-        );
-        setLoading(false);
-        return;
+      // Check balance
+      if (costInUsd > balance) {
+        setInsufficientBalance(true);
       }
 
       setStep("review");
@@ -143,6 +178,12 @@ export default function SendPaymentPage() {
   // Step 2: Execute Transaction
   const handleConfirm = async () => {
     if (!db) return;
+
+    // Double check balance for immediate execution
+    if (!isScheduled && insufficientBalance) {
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -170,15 +211,18 @@ export default function SendPaymentPage() {
         }
       }
 
-      const dueDate = new Date(formData.dueDate);
-      const isToday = new Date().toDateString() === dueDate.toDateString();
+      // Fix Date construction: explicitly parse YYYY-MM-DD as local time components
+      // or append time to ensure it's treated as local time, not UTC midnight.
+      // A safe way is to use the string directly for storage if needed, or append T12:00:00
+      const [y, m, d] = formData.dueDate.split("-").map(Number);
+      const dueDate = new Date(y, m - 1, d);
 
       const transactionData = {
         amount,
         currency: formData.currency,
-        exchangeRate: currentRate, // Store the rate used for calculation
+        exchangeRate: currentRate,
         fromCompanyId: CURRENT_COMPANY_ID,
-        toCompanyId: recipientCompany?.id ?? null, // Safe access with fallback to null
+        toCompanyId: recipientCompany?.id ?? null,
         createdAt: new Date(),
         metadata: {
           description: formData.description || "Payment",
@@ -186,14 +230,14 @@ export default function SendPaymentPage() {
         },
       };
 
-      if (isToday) {
+      if (!isScheduled) {
+        // Immediate Payment
         await db.add("transactions", {
           ...transactionData,
           id: uuid(),
           type: "payment_sent",
           status: "completed",
         });
-        // For the recipient, we record it as well (mocking the other side)
         await db.add("transactions", {
           ...transactionData,
           id: uuid(),
@@ -201,6 +245,7 @@ export default function SendPaymentPage() {
           status: "completed",
         });
       } else {
+        // Scheduled Payment
         await db.add("transactions", {
           ...transactionData,
           id: uuid(),
@@ -262,10 +307,12 @@ export default function SendPaymentPage() {
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl">
           ✓
         </div>
-        <h2 className="text-2xl font-semibold">Payment Sent</h2>
+        <h2 className="text-2xl font-semibold">
+          {isScheduled ? "Payment Scheduled" : "Payment Sent"}
+        </h2>
         <p className="text-gray-500">
-          Your payment of {formData.currency} {formData.amount} to{" "}
-          {formData.email} has been processed.
+          Your payment of {formData.currency} {formData.displayAmount} to{" "}
+          {formData.email} has been {isScheduled ? "scheduled" : "processed"}.
         </p>
         <div className="flex gap-4 justify-center mt-8">
           <Button
@@ -277,7 +324,12 @@ export default function SendPaymentPage() {
           <Button
             onClick={() => {
               setStep("form");
-              setFormData({ ...formData, amount: "", description: "" });
+              setFormData({
+                ...formData,
+                amount: "",
+                displayAmount: "",
+                description: "",
+              });
             }}
           >
             Send Another
@@ -292,6 +344,14 @@ export default function SendPaymentPage() {
     const afterBalance = balance - estimatedCost;
     const recipientName =
       companies.find((c) => c.email === formData.email)?.name || formData.email;
+
+    // Format date for display
+    const [y, m, d] = formData.dueDate.split("-");
+    const displayDate = new Date(
+      Number(y),
+      Number(m) - 1,
+      Number(d)
+    ).toLocaleDateString();
 
     return (
       <div className="max-w-[480px] mx-auto px-4 py-12">
@@ -309,7 +369,7 @@ export default function SendPaymentPage() {
               <span className="text-2xl align-top mr-1">
                 {formData.currency}
               </span>
-              {formData.amount}
+              {formData.displayAmount}
             </div>
             {formData.currency !== "USD" && (
               <div className="text-sm text-gray-500 mt-2">
@@ -334,7 +394,12 @@ export default function SendPaymentPage() {
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Date</span>
               <span className="font-medium">
-                {new Date(formData.dueDate).toLocaleDateString()}
+                {displayDate}
+                {isScheduled && (
+                  <span className="ml-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs">
+                    Scheduled
+                  </span>
+                )}
               </span>
             </div>
             {formData.description && (
@@ -375,7 +440,11 @@ export default function SendPaymentPage() {
 
           <div className="flex justify-between items-center font-medium">
             <span className="text-gray-900">New Balance</span>
-            <span className="font-mono text-black">
+            <span
+              className={`font-mono ${
+                afterBalance < 0 ? "text-red-600" : "text-black"
+              }`}
+            >
               $
               {afterBalance.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
@@ -383,6 +452,40 @@ export default function SendPaymentPage() {
             </span>
           </div>
         </div>
+
+        {/* Warning for insufficient funds */}
+        {insufficientBalance && (
+          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm text-orange-800 font-medium">
+                  Insufficient funds for this transaction.
+                </p>
+                {!isScheduled ? (
+                  <p className="text-xs text-orange-700">
+                    You need to add funds before sending this payment
+                    immediately.
+                  </p>
+                ) : (
+                  <p className="text-xs text-orange-700">
+                    You can schedule this payment, but ensure you add funds
+                    before the due date.
+                  </p>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="bg-white border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800 w-full sm:w-auto"
+                  onClick={() => router.push("/funds/add")}
+                >
+                  Add Funds Now
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm text-center">
@@ -400,10 +503,14 @@ export default function SendPaymentPage() {
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={loading}
-            className="flex-[2] bg-black text-white hover:bg-gray-800 h-12 rounded-lg"
+            disabled={loading || (insufficientBalance && !isScheduled)}
+            className="flex-[2] bg-black text-white hover:bg-gray-800 h-12 rounded-lg disabled:opacity-50"
           >
-            {loading ? "Processing..." : "Confirm & Send"}
+            {loading
+              ? "Processing..."
+              : isScheduled
+              ? "Confirm & Schedule"
+              : "Confirm & Send"}
           </Button>
         </div>
       </div>
@@ -457,13 +564,12 @@ export default function SendPaymentPage() {
             </div>
 
             <input
-              type="number"
-              value={formData.amount}
-              onChange={(e) =>
-                setFormData({ ...formData, amount: e.target.value })
-              }
-              placeholder="0.00"
-              className="w-full text-center text-6xl font-normal text-gray-400 placeholder:text-gray-200 focus:text-black outline-none bg-transparent p-0 m-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              type="text"
+              inputMode="decimal"
+              value={formData.displayAmount}
+              onChange={handleAmountChange}
+              placeholder="0"
+              className="w-full text-center text-6xl font-normal text-gray-400 placeholder:text-gray-200 focus:text-black outline-none bg-transparent p-0 m-0"
               autoFocus
             />
           </div>
@@ -557,6 +663,7 @@ export default function SendPaymentPage() {
               </div>
               <Input
                 type="date"
+                min={todayString} // Prevent dates before today
                 value={formData.dueDate}
                 onChange={(e) =>
                   setFormData({ ...formData, dueDate: e.target.value })

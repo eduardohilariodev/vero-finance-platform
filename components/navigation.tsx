@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUpRight } from "lucide-react";
+import { ArrowDown, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 export function Navigation() {
   return (
@@ -27,7 +27,7 @@ export function Navigation() {
             variant="ghost"
             className="text-sm font-medium flex items-center gap-2 text-gray-700 hover:bg-gray-50"
           >
-            <ArrowUpRight size={16} />
+            <ArrowDownLeft size={16} />
             Request Payment
           </Button>
         </Link>

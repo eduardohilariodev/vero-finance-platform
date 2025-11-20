@@ -16,12 +16,13 @@ import {
   ArrowDownLeft,
   Wallet,
   Sparkles,
-  MoreHorizontal,
   CheckCircle2,
   Clock,
   Landmark,
+  EllipsisVertical,
 } from "lucide-react";
 import Image from "next/image";
+import { formatCurrency } from "@/lib/utils";
 
 export default function Dashboard() {
   const { db, loading: dbLoading } = useDB();
@@ -43,13 +44,6 @@ export default function Dashboard() {
   }, [db]);
 
   if (dbLoading) return <div className="p-8">Loading...</div>;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   const formatStatus = (status: string) => {
     switch (status) {
@@ -79,11 +73,11 @@ export default function Dashboard() {
             <h2 className="text-3xl font-normal text-gray-800 mb-1">
               Your total assets are{" "}
               <span className="font-bold">
-                {formatCurrency(balance + 11_005_131.86)}
+                {formatCurrency(balance + 11_005_131.86, "USD")}
               </span>
             </h2>
             <p className="text-green-600 text-sm font-medium mb-6">
-              + 12.990 interest last 30 days
+              + 12,990 interest last 30 days
             </p>
             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
               <div className="h-full bg-gray-300 w-[75%]"></div>
@@ -112,10 +106,10 @@ export default function Dashboard() {
               </div>
               <div className="text-right">
                 <p className="font-bold text-xl text-gray-900">
-                  {formatCurrency(balance)}
+                  {formatCurrency(balance, "USD")}
                 </p>
                 <p className="text-green-600 text-xs">
-                  + 12.990 interest last 30 days
+                  + 12,990 interest last 30 days
                 </p>
               </div>
             </div>
@@ -213,6 +207,9 @@ export default function Dashboard() {
                     ? "text-green-600"
                     : "text-red-500";
 
+                  // Use transaction currency, defaulting to USD if undefined
+                  const currency = tx.currency || "USD";
+
                   return (
                     <tr
                       key={tx.id}
@@ -237,7 +234,10 @@ export default function Dashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
-                        {tx.fromCompanyId === "company-1"
+                        {typeof tx.metadata === "object" &&
+                        "recipientEmail" in (tx.metadata ?? {})
+                          ? (tx.metadata as any).recipientEmail
+                          : tx.fromCompanyId === "company-1"
                           ? "ACME Corp"
                           : "External"}
                       </td>
@@ -248,14 +248,26 @@ export default function Dashboard() {
                       <td
                         className={`px-6 py-4 text-right font-medium ${amountClass}`}
                       >
-                        {isInflow ? "+" : "-"}
-                        {formatCurrency(tx.amount)}
+                        <div>
+                          {isInflow ? "+" : "-"}
+                          {formatCurrency(tx.amount, currency)}
+                        </div>
+                        {currency !== "USD" && tx.exchangeRate && (
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            ≈{" "}
+                            {formatCurrency(tx.amount * tx.exchangeRate, "USD")}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <MoreHorizontal
-                          size={16}
-                          className="text-gray-400 cursor-pointer"
-                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="More options"
+                        >
+                          <EllipsisVertical size={16} />
+                        </Button>
                       </td>
                     </tr>
                   );

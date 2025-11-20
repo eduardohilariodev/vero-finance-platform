@@ -1,4 +1,3 @@
-// app/transactions/page.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { useDB } from "@/hooks/useDB";
@@ -19,7 +18,9 @@ import {
   MoreHorizontal,
   Clock,
   CheckCircle2,
+  Shuffle,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function TransactionsPage() {
   const { db, loading: dbLoading } = useDB();
@@ -38,12 +39,59 @@ export default function TransactionsPage() {
 
   if (dbLoading) return <div className="p-8">Loading transactions...</div>;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+  // Type term labeling logic
+  function getTypeDisplay(tx: Transaction) {
+    // The image clearly indicates "Outflow", "Inflow", "Transfer"
+    // "deposit" and "payment_received" are Inflow
+    // "withdrawal" and "payment_sent" are Outflow
+    // Other types (e.g., "transfer") are Transfer (if we implement them in types)
+    if (tx.type === "deposit" || tx.type === "payment_received") {
+      return {
+        label: "Inflow",
+        icon: (
+          <ArrowDownLeft
+            size={16}
+            className="text-green-600"
+          />
+        ),
+        className: "text-green-600",
+      };
+    } else if (tx.type === "withdrawal" || tx.type === "payment_sent") {
+      return {
+        label: "Outflow",
+        icon: (
+          <ArrowUpRight
+            size={16}
+            className="text-red-500"
+          />
+        ),
+        className: "text-red-500",
+      };
+    } else if (tx.type === "transfer") {
+      // If added as a possible type, show transfer styling
+      return {
+        label: "Transfer",
+        icon: (
+          <Shuffle
+            size={16}
+            className="text-gray-300"
+          />
+        ),
+        className: "text-gray-400",
+        transfer: true,
+      };
+    } else {
+      // fallback for unknown type
+      return {
+        label:
+          tx.type && typeof tx.type === "string"
+            ? (tx.type as string).split("_").join(" ")
+            : "Unknown",
+        icon: null,
+        className: "",
+      };
+    }
+  }
 
   const formatStatus = (status: string) => {
     switch (status) {
@@ -100,46 +148,81 @@ export default function TransactionsPage() {
             </TableHeader>
             <TableBody>
               {transactions.map((tx) => {
-                const isInflow =
-                  tx.type === "deposit" || tx.type === "payment_received";
-                // Removed isTransfer, since "transfer" is not a Transaction type
-                const amountClass = isInflow
-                  ? "text-green-600"
-                  : "text-red-500";
+                const {
+                  label,
+                  icon,
+                  className,
+                  transfer = false,
+                }: {
+                  label: string;
+                  icon: React.ReactNode;
+                  className: string;
+                  transfer?: boolean;
+                } = getTypeDisplay(tx) as {
+                  label: string;
+                  icon: React.ReactNode;
+                  className: string;
+                  transfer?: boolean;
+                };
+                const isInflow = label === "Inflow";
+                const isOutflow = label === "Outflow";
+
+                // Use transaction currency, defaulting to USD
+                const currency = tx.currency || "USD";
+                // Make text gray for "Transfer"
+                const rowTypeClass = transfer ? "opacity-60" : "";
 
                 return (
                   <TableRow
                     key={tx.id}
-                    className="text-sm"
+                    className={`text-sm ${rowTypeClass}`}
                   >
                     <TableCell className="font-medium flex items-center gap-2">
-                      {isInflow ? (
-                        <ArrowDownLeft
-                          size={16}
-                          className="text-green-600"
-                        />
-                      ) : (
-                        <ArrowUpRight
-                          size={16}
-                          className="text-red-500"
-                        />
-                      )}
-                      {tx.type.replace("_", " ")}
+                      {icon}
+                      <span className={transfer ? "text-gray-500" : ""}>
+                        {label}
+                      </span>
                     </TableCell>
                     <TableCell>
-                      {tx.fromCompanyId === "company-1"
-                        ? "ACME Corp"
-                        : "External"}
+                      {(typeof tx.metadata === "object" &&
+                        tx.metadata !== null &&
+                        "recipientEmail" in tx.metadata &&
+                        (tx.metadata &&
+                        typeof tx.metadata === "object" &&
+                        "recipientEmail" in tx.metadata
+                          ? (tx.metadata as any).recipientEmail
+                          : undefined)) ||
+                        (tx.fromCompanyId === "company-1"
+                          ? "ACME Corp"
+                          : "External")}
                     </TableCell>
                     <TableCell>
                       {new Date(tx.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{formatStatus(tx.status)}</TableCell>
                     <TableCell
-                      className={`text-right font-semibold ${amountClass}`}
+                      className={`text-right font-semibold ${
+                        isInflow
+                          ? "text-green-600"
+                          : isOutflow
+                          ? "text-red-500"
+                          : transfer
+                          ? "text-gray-400"
+                          : ""
+                      }`}
                     >
-                      {isInflow ? "+" : "-"}
-                      {formatCurrency(tx.amount)}
+                      <div className="flex flex-col items-end">
+                        <span>
+                          {isInflow ? "+" : isOutflow ? "-" : ""}
+                          {formatCurrency(tx.amount, currency)}
+                        </span>
+                        {currency !== "USD" && tx.exchangeRate && (
+                          <span className="text-xs text-gray-400 font-normal">
+                            ≈{" "}
+                            {formatCurrency(tx.amount * tx.exchangeRate, "USD")}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <MoreHorizontal

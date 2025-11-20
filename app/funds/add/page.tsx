@@ -1,5 +1,6 @@
+// app/funds/add/page.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDB } from "@/hooks/useDB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +8,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { v4 as uuid } from "uuid";
 import { CURRENT_COMPANY_ID } from "@/lib/mocks";
 import Link from "next/link";
+import { getExchangeRate } from "@/lib/currency"; // Ensure correct import path
+
+const CURRENCIES = ["USD", "USDC", "EUR", "ETH"];
 
 export default function AddFundsPage() {
   const { db } = useDB();
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  const [exchangeRate, setExchangeRate] = useState(1);
+  const [estimatedValue, setEstimatedValue] = useState(0);
+
+  // Fetch rate when currency changes
+  useEffect(() => {
+    async function fetchRate() {
+      const rate = await getExchangeRate(currency, "USD");
+      setExchangeRate(rate);
+    }
+    fetchRate();
+  }, [currency]);
+
+  // Update estimated value when amount or rate changes
+  useEffect(() => {
+    const val = parseFloat(amount);
+    if (!isNaN(val)) {
+      setEstimatedValue(val * exchangeRate);
+    } else {
+      setEstimatedValue(0);
+    }
+  }, [amount, exchangeRate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +63,8 @@ export default function AddFundsPage() {
         id: uuid(),
         type: "deposit",
         amount: val,
-        currency: "USDC",
+        currency: currency,
+        exchangeRate: exchangeRate,
         fromCompanyId: "external", // External bank/card
         toCompanyId: CURRENT_COMPANY_ID,
         status: "completed", // Instant deposit for demo
@@ -46,14 +74,14 @@ export default function AddFundsPage() {
         },
       });
 
-      // Update wallet balance (optional, though useBalance hook derives it from txs usually)
-      // We just ensure the wallet entry exists
+      // Update wallet balance logic is handled by useBalance via transactions
+      // We just ensure the wallet entry exists if it's the first time
       const wallet = await db.get("wallets", CURRENT_COMPANY_ID);
       if (!wallet) {
         await db.add("wallets", {
           companyId: CURRENT_COMPANY_ID,
           balance: 0,
-          currency: "USDC",
+          currency: "USD", // Base currency
           lastUpdated: new Date(),
         });
       }
@@ -80,10 +108,15 @@ export default function AddFundsPage() {
               Funds Added Successfully!
             </h2>
             <p className="text-gray-500">
-              Your account has been credited with ${amount} USDC.
+              Your account has been credited with {amount} {currency}.
             </p>
+            {currency !== "USD" && (
+              <p className="text-sm text-gray-400">
+                (≈ ${estimatedValue.toFixed(2)} USD value)
+              </p>
+            )}
             <div className="flex flex-col gap-2 pt-4">
-              <Link href="/dashboard">
+              <Link href="/">
                 <Button className="w-full">Go to Dashboard</Button>
               </Link>
               <Button
@@ -117,20 +150,50 @@ export default function AddFundsPage() {
               Simulate a deposit from an external bank account.
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Amount (USDC)
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="5000.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                autoFocus
-              />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">Amount</label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  placeholder="5000.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="w-24">
+                <label className="block text-sm font-medium mb-2">
+                  Currency
+                </label>
+                <select
+                  className="w-full h-10 px-3 border rounded-md bg-white text-sm"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option
+                      key={c}
+                      value={c}
+                    >
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {currency !== "USD" && amount && (
+              <div className="text-right text-sm text-gray-500">
+                ≈ $
+                {estimatedValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                USD
+              </div>
+            )}
 
             {error && <div className="text-red-500 text-sm">{error}</div>}
 
