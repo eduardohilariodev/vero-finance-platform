@@ -3,6 +3,9 @@ import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { InitializeDB } from "@/components/initialize-db";
 
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+
 export const metadata: Metadata = {
   title: "Vero Finance",
   description: "Financial management platform",
@@ -17,8 +20,13 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <InitializeDB />
-        <Navigation />
-        <main>{children}</main>
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="w-full flex flex-col bg-white min-h-screen">
+            <Navigation />
+            <div className="flex-1 bg-white">{children}</div>
+          </main>
+        </SidebarProvider>
       </body>
     </html>
   );
