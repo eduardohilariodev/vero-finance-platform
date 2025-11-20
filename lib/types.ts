@@ -9,7 +9,8 @@ export interface Transaction {
   id: string;
   type: "deposit" | "withdrawal" | "payment_sent" | "payment_received";
   amount: number;
-  currency: "USD" | "USDC" | "ETH"; // Mocked currencies
+  currency: string; // The currency of the transaction (e.g., "ETH", "EUR")
+  exchangeRate?: number; // The value of 1 unit of 'currency' in USD at the time of tx
   fromCompanyId: string;
   toCompanyId?: string;
   status: "pending" | "completed" | "failed";

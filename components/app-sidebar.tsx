@@ -6,7 +6,8 @@ import {
   Contact2,
   CreditCard,
   BarChart2,
-  Settings,
+  ShieldCheck,
+  EllipsisVertical,
 } from "lucide-react";
 import {
   Sidebar,
@@ -105,13 +106,23 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton>
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-gray-200 border border-gray-300" />
                 <div className="flex flex-col text-left text-xs leading-tight">
-                  <span className="font-semibold">Infinity Base SA</span>
+                  <span className="font-semibold flex items-center gap-1">
+                    <span className="flex items-center gap-1">
+                      Infinity Base SA
+                      <span className="flex items-center">
+                        <ShieldCheck
+                          className="h-4 w-4 text-white fill-yellow-500"
+                          strokeWidth={1.5}
+                          fill="currentColor"
+                        />
+                      </span>
+                    </span>
+                  </span>
                   <span className="text-gray-500">acme@company.com</span>
                 </div>
               </div>
-              <Settings className="ml-auto h-4 w-4 text-gray-500" />
+              <EllipsisVertical className="ml-auto h-4 w-4 text-gray-500" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
