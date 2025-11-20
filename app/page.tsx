@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import { useDB } from "@/hooks/useDB";
 import { useBalance } from "@/hooks/useBalance";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
 import { Transaction } from "@/lib/types";
 import {
@@ -18,6 +23,7 @@ import {
   Clock,
 } from "lucide-react";
 import { CURRENT_COMPANY_ID } from "@/lib/mocks";
+import Image from "next/image";
 
 export default function Dashboard() {
   const { db, loading: dbLoading } = useDB();
@@ -294,24 +300,29 @@ export default function Dashboard() {
       {/* BOTTOM CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Vero Card Promo */}
-        <div className="border border-gray-200 rounded-xl p-8 flex justify-between items-center bg-white overflow-hidden relative group">
-          <div className="relative z-10 max-w-[60%]">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
+        <Card className="grid p-0 grid-cols-2 gap-4 items-center overflow-hidden relative group">
+          <div className="p-6 relative z-10">
+            <CardTitle className="text-lg mb-2">
               Create your Vero Card
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
+            </CardTitle>
+            <CardDescription className="mb-6">
               Order Physical cards with expedited shipping or create unlimited
               virtual cards in seconds
-            </p>
-            <Button className="text-sm font-semibold text-gray-900 hover:underline">
-              Let me know
-            </Button>
+            </CardDescription>
+            <Button variant="link">Let me know</Button>
           </div>
           {/* Mock Card Visual */}
-          <div className="absolute right-[-20px] bottom-[-40px] w-48 h-32 bg-gradient-to-br from-gray-300 to-gray-500 rounded-lg shadow-xl transform -rotate-12 group-hover:-rotate-6 transition-transform duration-300 flex items-center justify-center text-white/20 font-bold text-2xl border-t border-white/40">
-            vero
+          <div className="flex items-end justify-end h-full w-full">
+            <Image
+              src="/card.png"
+              width={400}
+              height={250}
+              alt="Bento promo card"
+              className="w-full h-auto object-cover"
+              style={{ objectPosition: "right bottom" }}
+            />
           </div>
-        </div>
+        </Card>
 
         {/* Verified Business Promo */}
         <div className="border border-gray-200 rounded-xl p-8 flex justify-between items-center bg-white overflow-hidden relative">
