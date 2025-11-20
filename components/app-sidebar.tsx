@@ -21,6 +21,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import Image from "next/image";
 
 export function AppSidebar() {
   const pendingRequests = 23;
@@ -42,10 +43,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2 px-2 font-bold text-xl text-gray-800 group-data-[collapsible=icon]:hidden">
-          <div className="w-6 h-6 bg-black rounded-sm flex items-center justify-center text-white text-xs">
-            V
-          </div>
-          Vero
+          <Image
+            src="/logo.svg"
+            alt="Vero Logo"
+            width={16}
+            height={16}
+            className="w-5 h-5 rounded-sm object-contain"
+            priority
+          />
         </div>
         <SidebarTrigger className="ml-auto" />
       </SidebarHeader>
@@ -100,7 +105,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton>
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-gray-200 border border-gray-300"></div>
+                <div className="h-6 w-6 rounded bg-gray-200 border border-gray-300" />
                 <div className="flex flex-col text-left text-xs leading-tight">
                   <span className="font-semibold">Infinity Base SA</span>
                   <span className="text-gray-500">acme@company.com</span>

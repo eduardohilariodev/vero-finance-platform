@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, User, Landmark } from "lucide-react";
 import Link from "next/link";
 import { CURRENT_COMPANY_ID } from "@/lib/mocks";
+import { formatCurrency } from "@/lib/utils";
 
 export default function RequestsPage() {
   const { db, loading: dbLoading } = useDB();
@@ -36,12 +37,6 @@ export default function RequestsPage() {
   }, [db]);
 
   if (dbLoading) return <div className="p-8">Loading requests...</div>;
-
-  const formatCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-    }).format(amount);
 
   const formatStatus = (status: string) => {
     switch (status) {

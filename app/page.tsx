@@ -14,15 +14,13 @@ import { Transaction } from "@/lib/types";
 import {
   ArrowUpRight,
   ArrowDownLeft,
-  ArrowRightLeft,
   Wallet,
-  Building2,
   Sparkles,
-  MoreVertical,
+  MoreHorizontal,
   CheckCircle2,
   Clock,
+  Landmark,
 } from "lucide-react";
-import { CURRENT_COMPANY_ID } from "@/lib/mocks";
 import Image from "next/image";
 
 export default function Dashboard() {
@@ -35,6 +33,7 @@ export default function Dashboard() {
 
     (async () => {
       const allTxs = await db.getAll("transactions");
+      // Sort by date descending, limit to 5
       setTransactions(
         allTxs
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -45,14 +44,29 @@ export default function Dashboard() {
 
   if (dbLoading) return <div className="p-8">Loading...</div>;
 
-  // Helper to format currency roughly like the screenshot
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    })
-      .format(amount)
-      .replace("US$", "$");
+    }).format(amount);
+  };
+
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "completed":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+            <CheckCircle2 size={12} /> Settled
+          </span>
+        );
+      case "pending":
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+            <Clock size={12} /> Processing
+          </span>
+        );
+    }
   };
 
   return (
@@ -65,14 +79,12 @@ export default function Dashboard() {
             <h2 className="text-3xl font-normal text-gray-800 mb-1">
               Your total assets are{" "}
               <span className="font-bold">
-                {formatCurrency(balance + 11005131.86)}
+                {formatCurrency(balance + 11_005_131.86)}
               </span>
             </h2>
             <p className="text-green-600 text-sm font-medium mb-6">
               + 12.990 interest last 30 days
             </p>
-
-            {/* Progress Bar Mock */}
             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
               <div className="h-full bg-gray-300 w-[75%]"></div>
               <div className="h-full bg-gray-600 w-[25%]"></div>
@@ -112,7 +124,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between py-4">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 bg-gray-600 rounded flex items-center justify-center text-white">
-                  <Building2 size={20} />
+                  <Landmark size={20} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -142,7 +154,7 @@ export default function Dashboard() {
         {/* RIGHT COLUMN: News Widget */}
         <div className="lg:col-span-1">
           <Card className="h-full border-gray-100 shadow-sm">
-            <CardContent className="p-6 flex flex-col h-full">
+            <CardContent className=" flex flex-col h-full">
               <div className="mb-4 text-yellow-400">
                 <Sparkles
                   size={24}
@@ -152,14 +164,15 @@ export default function Dashboard() {
               <h3 className="font-bold text-lg mb-3 leading-tight">
                 Budget deal averts shutdown, easing political gridlock
               </h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+              <p className="text-sm text-gray-500 leading-relaxed ">
                 After days of tense negotiations, lawmakers reached a
                 last-minute agreement to extend government funding and keep
-                agencies open while a longer-term budget is debated.
+                agencies open while a longer-term budget is debated. The
+                compromise cools partisan friction for now, with leaders
+                pledging to resume talks on spending caps and deficit measures.
+                Markets reacted with cautious relief as policy uncertainty
+                briefly receded.
               </p>
-              <div className="mt-auto pt-4">
-                {/* Spacer to push content up if needed */}
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -183,107 +196,71 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {transactions.map((tx) => {
-                const isInflow =
-                  tx.toCompanyId === CURRENT_COMPANY_ID ||
-                  tx.type === "deposit";
-                const isInternal =
-                  tx.fromCompanyId === CURRENT_COMPANY_ID &&
-                  tx.toCompanyId === CURRENT_COMPANY_ID; // mock logic
-
-                return (
-                  <tr
-                    key={tx.id}
-                    className="bg-white hover:bg-gray-50"
+              {transactions.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-gray-400 text-sm"
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {isInflow ? (
-                          <ArrowDownLeft
-                            className="text-green-600"
-                            size={18}
-                          />
-                        ) : (
-                          <ArrowUpRight
-                            className="text-red-500"
-                            size={18}
-                          />
-                        )}
-                        <span className="font-medium text-gray-900 capitalize">
-                          {tx.type === "payment_received"
-                            ? "Inflow"
-                            : tx.type === "payment_sent"
-                            ? "Outflow"
-                            : tx.type}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {isInflow ? "ACME Corp" : "marcoswbd@gmail.com"}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 font-medium">
-                      {new Date(tx.createdAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      {tx.status === "completed" ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                          <CheckCircle2 size={12} /> Settled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
-                          <Clock size={12} /> Processing
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      className={`px-6 py-4 text-right font-medium ${
-                        isInflow ? "text-green-600" : "text-red-500"
-                      }`}
+                    No transactions found.
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((tx) => {
+                  const isInflow =
+                    tx.type === "deposit" || tx.type === "payment_received";
+                  const amountClass = isInflow
+                    ? "text-green-600"
+                    : "text-red-500";
+
+                  return (
+                    <tr
+                      key={tx.id}
+                      className="bg-white hover:bg-gray-50"
                     >
-                      {isInflow ? "+" : "-"}
-                      {formatCurrency(tx.amount)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Button className="text-gray-400 hover:text-gray-600">
-                        <MoreVertical size={16} />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {/* Manual Mock Row for Transfer if list is empty or just to match design */}
-              <tr className="bg-white hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <ArrowRightLeft
-                      className="text-gray-400"
-                      size={18}
-                    />
-                    <span className="font-medium text-gray-900">Transfer</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-gray-600">Business Account</td>
-                <td className="px-6 py-4 text-gray-600 font-medium">
-                  12 Oct 2024
-                </td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                    <Clock size={12} /> Processing
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right font-medium text-gray-900">
-                  R$ 124,024.92
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <Button className="text-gray-400 hover:text-gray-600">
-                    <MoreVertical size={16} />
-                  </Button>
-                </td>
-              </tr>
+                      <td className="px-6 py-4 font-medium">
+                        <div className="flex items-center gap-2">
+                          {isInflow ? (
+                            <ArrowDownLeft
+                              size={16}
+                              className="text-green-600"
+                            />
+                          ) : (
+                            <ArrowUpRight
+                              size={16}
+                              className="text-red-500"
+                            />
+                          )}
+                          <span className="capitalize">
+                            {tx.type.replace("_", " ")}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {tx.fromCompanyId === "company-1"
+                          ? "ACME Corp"
+                          : "External"}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 font-medium">
+                        {new Date(tx.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">{formatStatus(tx.status)}</td>
+                      <td
+                        className={`px-6 py-4 text-right font-medium ${amountClass}`}
+                      >
+                        {isInflow ? "+" : "-"}
+                        {formatCurrency(tx.amount)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <MoreHorizontal
+                          size={16}
+                          className="text-gray-400 cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -309,7 +286,12 @@ export default function Dashboard() {
               Order Physical cards with expedited shipping or create unlimited
               virtual cards in seconds
             </CardDescription>
-            <Button variant="link">Let me know</Button>
+            <Link
+              href="#"
+              className="text-primary underline-offset-4 hover:underline font-medium text-sm"
+            >
+              Let me know
+            </Link>
           </div>
           {/* Mock Card Visual */}
           <div className="flex items-end justify-end h-full w-full">
@@ -325,26 +307,33 @@ export default function Dashboard() {
         </Card>
 
         {/* Verified Business Promo */}
-        <div className="border border-gray-200 rounded-xl p-8 flex justify-between items-center bg-white overflow-hidden relative">
-          <div className="relative z-10 max-w-[60%]">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
+        <Card className="grid p-0 grid-cols-[1fr_auto] gap-4 items-center overflow-hidden relative group">
+          <div className="p-6 relative z-10 w-full">
+            <CardTitle className="text-lg mb-2 w-full">
               Be recognized as a Verified Business
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
+            </CardTitle>
+            <CardDescription className="mb-6 w-full">
               Verify once to speed up withdrawals and display your Verified
               status to partners.
-            </p>
-            <Button className="text-sm font-semibold text-gray-900 hover:underline">
+            </CardDescription>
+            <Link
+              href="#"
+              className="text-primary underline-offset-4 hover:underline font-medium text-sm w-full inline-block"
+            >
               Verify My Business
-            </Button>
+            </Link>
           </div>
-          {/* Mock Shield Visual */}
-          <div className="absolute right-8 top-1/2 -translate-y-1/2">
-            <div className="w-20 h-24 bg-gradient-to-b from-yellow-200 to-yellow-500 rounded-b-[40px] rounded-t-[10px] shadow-lg flex items-center justify-center">
-              <CheckCircle2 className="text-white w-10 h-10 opacity-80" />
-            </div>
+          {/* Larger centred security image */}
+          <div className="flex items-center justify-center ">
+            <Image
+              src="/security.png"
+              width={180}
+              height={180}
+              alt="Security verified"
+              className="object-contain"
+            />
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
