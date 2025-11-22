@@ -1,4 +1,3 @@
-// app/requests/page.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { useDB } from "@/hooks/useDB";
@@ -100,45 +99,59 @@ export default function RequestsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {incomingRequests.map((req) => (
-                <TableRow
-                  key={req.id}
-                  className="text-sm"
-                >
-                  <TableCell className="font-medium">
-                    {req.fromCompanyId === "company-2"
-                      ? "ACME Corp"
-                      : "External Partner"}
-                  </TableCell>
-                  <TableCell className="font-semibold text-gray-900">
-                    {formatCurrency(req.amount, req.currency)}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(req.dueDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{formatStatus(req.status)}</TableCell>
-                  <TableCell>
-                    {req.status === "pending" ? (
-                      <Link href={`/payments/accept?requestId=${req.id}`}>
+              {incomingRequests.map((req) => {
+                const currency = req.currency || "USD";
+                return (
+                  <TableRow
+                    key={req.id}
+                    className="text-sm"
+                  >
+                    <TableCell className="font-medium">
+                      {req.fromCompanyId === "company-2"
+                        ? "ACME Corp"
+                        : "External Partner"}
+                    </TableCell>
+                    <TableCell className="font-semibold text-gray-900">
+                      <div className="flex flex-col">
+                        <span>{formatCurrency(req.amount, currency)}</span>
+                        {currency !== "USD" && (req as any).exchangeRate && (
+                          <span className="text-xs text-gray-400 font-normal">
+                            ≈{" "}
+                            {formatCurrency(
+                              req.amount * (req as any).exchangeRate,
+                              "USD"
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(req.dueDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{formatStatus(req.status)}</TableCell>
+                    <TableCell>
+                      {req.status === "pending" ? (
+                        <Link href={`/payments/accept?requestId=${req.id}`}>
+                          <Button
+                            size="sm"
+                            variant="default"
+                          >
+                            Review & Accept
+                          </Button>
+                        </Link>
+                      ) : (
                         <Button
                           size="sm"
-                          variant="default"
+                          variant="outline"
+                          disabled
                         >
-                          Review & Accept
+                          View Details
                         </Button>
-                      </Link>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled
-                      >
-                        View Details
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {incomingRequests.length === 0 && (
                 <TableRow>
                   <TableCell
@@ -172,34 +185,49 @@ export default function RequestsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {outgoingRequests.map((req) => (
-                <TableRow
-                  key={req.id}
-                  className="text-sm"
-                >
-                  <TableCell className="font-medium">
-                    {req.toCompanyId === "company-2"
-                      ? "ACME Corp"
-                      : "External Partner"}
-                  </TableCell>
-                  <TableCell className="font-semibold text-gray-900">
-                    {formatCurrency(req.amount, req.currency)}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(req.dueDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{formatStatus(req.status)}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={req.status !== "pending"}
-                    >
-                      Cancel
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {outgoingRequests.map((req) => {
+                const currency = req.currency || "USD";
+                return (
+                  <TableRow
+                    key={req.id}
+                    className="text-sm"
+                  >
+                    <TableCell className="font-medium">
+                      {(req as any).metadata?.payerEmail ||
+                        (req.toCompanyId === "company-2"
+                          ? "ACME Corp"
+                          : "External Partner")}
+                    </TableCell>
+                    <TableCell className="font-semibold text-gray-900">
+                      <div className="flex flex-col">
+                        <span>{formatCurrency(req.amount, currency)}</span>
+                        {currency !== "USD" && (req as any).exchangeRate && (
+                          <span className="text-xs text-gray-400 font-normal">
+                            ≈{" "}
+                            {formatCurrency(
+                              req.amount * (req as any).exchangeRate,
+                              "USD"
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(req.dueDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{formatStatus(req.status)}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={req.status !== "pending"}
+                      >
+                        Cancel
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {outgoingRequests.length === 0 && (
                 <TableRow>
                   <TableCell

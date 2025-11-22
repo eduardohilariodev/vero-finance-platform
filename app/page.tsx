@@ -131,16 +131,18 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <Button
-                variant="secondary"
-                className="bg-gray-100 hover:bg-gray-200 text-gray-900 border-0"
-              >
-                <ArrowDownLeft
-                  size={16}
-                  className="mr-2"
-                />
-                Add or Transfer Funds
-              </Button>
+              <Link href="/funds/add">
+                <Button
+                  variant="secondary"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-900 border-0"
+                >
+                  <ArrowDownLeft
+                    size={16}
+                    className="mr-2"
+                  />
+                  Add or Transfer Funds
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

@@ -10,6 +10,20 @@ export function Navigation() {
         <span className="text-xl text-gray-800">Hello, Marcos</span>
       </div>
       <div className="flex items-center gap-3">
+        {/* Withdraw */}
+        <Link href="/funds/withdraw">
+          <Button
+            variant="ghost"
+            className="text-sm font-medium flex items-center gap-2 text-gray-700 hover:bg-gray-50"
+          >
+            <ArrowDown
+              size={16}
+              className="rotate-180"
+            />
+            Withdraw Funds
+          </Button>
+        </Link>
+
         {/* Add Funds */}
         <Link href="/funds/add">
           <Button
