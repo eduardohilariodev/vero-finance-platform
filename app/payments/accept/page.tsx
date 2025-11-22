@@ -101,7 +101,7 @@ function AcceptPaymentContent() {
       setSuccess(true);
 
       // Redirect after short delay
-      setTimeout(() => router.push("/dashboard"), 2000);
+      setTimeout(() => router.push(""), 2000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Payment failed");

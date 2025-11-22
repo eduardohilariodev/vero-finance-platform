@@ -205,7 +205,7 @@ export default function AddFundsPage() {
               {loading ? "Processing Deposit..." : "Deposit Funds"}
             </Button>
 
-            <Link href="/dashboard">
+            <Link href="">
               <Button
                 variant="ghost"
                 className="w-full mt-2"

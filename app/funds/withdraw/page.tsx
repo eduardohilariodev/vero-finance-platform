@@ -195,7 +195,7 @@ export default function WithdrawFundsPage() {
               </p>
             </div>
             <div className="pt-4">
-              <Link href="/dashboard">
+              <Link href="">
                 <Button className="w-full">Return to Dashboard</Button>
               </Link>
             </div>
@@ -347,7 +347,7 @@ export default function WithdrawFundsPage() {
                 Continue
               </Button>
 
-              <Link href="/dashboard">
+              <Link href="">
                 <Button
                   variant="ghost"
                   className="w-full mt-2"
