@@ -201,7 +201,7 @@ export default function RequestPaymentPage() {
       await db.add("paymentRequests", {
         id: uuid(),
         fromCompanyId: CURRENT_COMPANY_ID, // Me (Requester)
-        toCompanyId: targetCompany.id, // Them (Payer)
+        toCompanyId: targetCompany?.id ?? "", // Them (Payer) - fallback to empty string if undefined
         amount,
         currency: formData.currency,
         exchangeRate: currentRate,
